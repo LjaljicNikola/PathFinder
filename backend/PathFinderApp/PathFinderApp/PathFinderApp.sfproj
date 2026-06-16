@@ -35,12 +35,12 @@
   <ItemGroup>
     <Content Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\PathFinder\backend\AccountService\AccountService.csproj">
+ <ItemGroup>
+    <ProjectReference Include="..\AccountService\AccountService.csproj">
       <ServiceLaunchUrl>http://localhost:{ServicePort}/swagger</ServiceLaunchUrl>
     </ProjectReference>
-    <ProjectReference Include="..\PathFinder\backend\ShareTokenService\ShareTokenService.csproj" />
-    <ProjectReference Include="..\PathFinder\backend\TripService\TripService.csproj">
+    <ProjectReference Include="..\ShareTokenService\ShareTokenService.csproj" />
+    <ProjectReference Include="..\TripService\TripService.csproj">
       <ServiceLaunchUrl>https://localhost:{ServicePort}/swagger</ServiceLaunchUrl>
     </ProjectReference>
   </ItemGroup>

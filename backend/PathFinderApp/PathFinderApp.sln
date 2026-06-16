@@ -5,11 +5,11 @@ VisualStudioVersion = 17.14.37216.2 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{A07B5EB6-E848-4116-A8D0-A826331D98C6}") = "PathFinderApp", "PathFinderApp\PathFinderApp.sfproj", "{6137EB35-F89E-4323-BC4C-F46E7BDA9D87}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountService", "PathFinder\backend\AccountService\AccountService.csproj", "{FA89BD8F-1076-4C58-BDFF-E4202AA78C79}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccountService", "AccountService\AccountService.csproj", "{FA89BD8F-1076-4C58-BDFF-E4202AA78C79}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TripService", "PathFinder\backend\TripService\TripService.csproj", "{0EFC3872-8EE2-4DE5-A8C9-73EF39C71010}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TripService", "TripService\TripService.csproj", "{0EFC3872-8EE2-4DE5-A8C9-73EF39C71010}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareTokenService", "PathFinder\backend\ShareTokenService\ShareTokenService.csproj", "{F0AFB6ED-6121-4D54-AB97-A983271EE0AE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShareTokenService", "ShareTokenService\ShareTokenService.csproj", "{F0AFB6ED-6121-4D54-AB97-A983271EE0AE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PathFinder.Common", "PathFinder.Common\PathFinder.Common.csproj", "{E98CEEE4-DCDD-4257-8158-4B0CC083CB73}"
 EndProject
