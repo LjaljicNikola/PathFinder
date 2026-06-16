@@ -13,6 +13,8 @@ using Microsoft.ServiceFabric.Services.Communication.AspNetCore;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 using Microsoft.ServiceFabric.Data;
+using Microsoft.EntityFrameworkCore;
+using TripService.Data;
 
 namespace TripService
 {
@@ -41,6 +43,8 @@ namespace TripService
                         var builder = WebApplication.CreateBuilder();
 
                         builder.Services.AddSingleton<StatelessServiceContext>(serviceContext);
+                        builder.Services.AddDbContext<TripDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
                         builder.WebHost
                                     .UseKestrel(opt =>
                                     {
