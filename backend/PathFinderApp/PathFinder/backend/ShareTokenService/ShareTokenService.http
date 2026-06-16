@@ -1,0 +1,6 @@
+@ShareTokenService_HostAddress = http://localhost:5012
+
+GET {{ShareTokenService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
