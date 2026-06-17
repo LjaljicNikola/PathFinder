@@ -8,10 +8,14 @@ namespace TripService.Services
     public class TravelPlanService
     {
         private readonly TripDbContext _context;
+        private readonly ExpenseService _expenseService;
+        private readonly ChecklistService _checklistService;
 
-        public TravelPlanService(TripDbContext context)
+        public TravelPlanService(TripDbContext context, ExpenseService expenseService, ChecklistService checklistService)
         {
             _context = context;
+            _expenseService = expenseService;
+            _checklistService = checklistService;
         }
 
         public async Task<List<TravelPlanDto>> GetAllForUserAsync(int userId)
@@ -110,6 +114,50 @@ namespace TripService.Services
                 PlannedBudget = plan.PlannedBudget,
                 Notes = plan.Notes,
                 CreatedOn = plan.CreatedOn
+            };
+        }
+        public async Task<TravelPlanOverviewDto?> GetOverviewAsync(int travelPlanId)
+        {
+            var plan = await _context.TravelPlans
+                .Include(p => p.Destinations).ThenInclude(d => d.Activities)
+                .FirstOrDefaultAsync(p => p.Id == travelPlanId);
+
+            if (plan == null) return null;
+
+            var budget = await _expenseService.GetBudgetSummaryAsync(travelPlanId);
+            var checklist = await _checklistService.GetAllForPlanAsync(travelPlanId);
+
+            return new TravelPlanOverviewDto
+            {
+                Plan = ToDto(plan),
+                Destinations = plan.Destinations.Select(d => new DestinationWithActivitiesDto
+                {
+                    Destination = new DestinationDto
+                    {
+                        Id = d.Id,
+                        TravelPlanId = d.TravelPlanId,
+                        Name = d.Name,
+                        Location = d.Location,
+                        ArrivalDate = d.ArrivalDate,
+                        DepartureDate = d.DepartureDate,
+                        Notes = d.Notes
+                    },
+                    Activities = d.Activities.Select(a => new ActivityDto
+                    {
+                        Id = a.Id,
+                        DestinationId = a.DestinationId,
+                        Name = a.Name,
+                        Date = a.Date,
+                        Time = a.Time,
+                        Location = a.Location,
+                        Description = a.Description,
+                        EstimatedCost = a.EstimatedCost,
+                        Status = a.Status
+                    }).ToList()
+                }).ToList(),
+                Expenses = await _expenseService.GetAllForPlanAsync(travelPlanId),
+                Budget = budget!,
+                ChecklistItems = checklist
             };
         }
     }

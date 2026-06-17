@@ -34,6 +34,14 @@ namespace TripService.Controllers
             return Ok(plan);
         }
 
+        [HttpGet("{id}/overview")]
+        public async Task<IActionResult> GetOverview(int id)
+        {
+            var overview = await _planService.GetOverviewAsync(id);
+            if (overview == null) return NotFound(new { message = "Plan putovanja nije pronađen." });
+            return Ok(overview);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTravelPlanDto dto)
         {
