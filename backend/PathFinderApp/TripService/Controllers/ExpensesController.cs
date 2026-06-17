@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TripService.DTOs;
 using TripService.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TripService.Controllers
 {
     [ApiController]
     [Route("api/expenses")]
+    [Authorize]
     public class ExpensesController : ControllerBase
     {
         private readonly ExpenseService _expenseService;

@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TripService.DTOs;
 using TripService.Services;
-    
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace TripService.Controllers
 {
     [ApiController]
     [Route("api/checklist")]
+    [Authorize]
     public class ChecklistController : ControllerBase
     {
         private readonly ChecklistService _checklistService;

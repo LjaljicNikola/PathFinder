@@ -16,6 +16,9 @@ using Microsoft.ServiceFabric.Data;
 using Microsoft.EntityFrameworkCore;
 using TripService.Data;
 using TripService.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace TripService
 {
@@ -66,6 +69,22 @@ namespace TripService
                         builder.Services.AddControllers();
                         builder.Services.AddEndpointsApiExplorer();
                         builder.Services.AddSwaggerGen();
+                        var jwtSecret = builder.Configuration["Jwt:Secret"]!;
+                        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                            .AddJwtBearer(options =>
+                            {
+                                options.TokenValidationParameters = new TokenValidationParameters
+                                {
+                                    ValidateIssuer = true,
+                                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                                    ValidateAudience = true,
+                                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                                    ValidateLifetime = true,
+                                    ValidateIssuerSigningKey = true,
+                                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+                                };
+                            });
+                        builder.Services.AddAuthorization();
                         var app = builder.Build();
                         if (app.Environment.IsDevelopment())
                         {
@@ -73,6 +92,7 @@ namespace TripService
                         app.UseSwaggerUI();
                         }
                         app.UseHttpsRedirection();
+                        app.UseAuthentication();
                         app.UseAuthorization();
                         app.MapControllers();
                         

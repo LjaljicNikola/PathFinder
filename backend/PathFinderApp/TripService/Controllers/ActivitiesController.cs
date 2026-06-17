@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TripService.DTOs;
 using TripService.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TripService.Controllers
 {
     [ApiController]
     [Route("api/activities")]
+    [Authorize]
     public class ActivitiesController : ControllerBase
     {
         private readonly ActivityService _activityService;

@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using TripService.DTOs;
+using TripService.Extensions;
 using TripService.Services;
 
 namespace TripService.Controllers
 {
     [ApiController]
     [Route("api/travel-plans")]
+    [Authorize]
     public class TravelPlansController : ControllerBase
     {
         private readonly TravelPlanService _planService;
@@ -16,8 +19,9 @@ namespace TripService.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] int userId)
+        public async Task<IActionResult> GetAll()
         {
+            var userId = User.GetUserId();
             var plans = await _planService.GetAllForUserAsync(userId);
             return Ok(plans);
         }
@@ -35,6 +39,7 @@ namespace TripService.Controllers
         {
             try
             {
+                dto.UserId = User.GetUserId();
                 var created = await _planService.CreateAsync(dto);
                 return StatusCode(StatusCodes.Status201Created, created);
             }
