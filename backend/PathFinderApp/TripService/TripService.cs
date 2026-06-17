@@ -56,6 +56,7 @@ namespace TripService
                         builder.Services.AddScoped<ExpenseService>();
                         builder.Services.AddScoped<ChecklistService>();
                         builder.Services.AddScoped<SharingProxyService>();
+                        builder.Services.AddScoped<PdfReportService>();
                         builder.WebHost
                                     .UseKestrel(opt =>
                                     {

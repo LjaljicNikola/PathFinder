@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.ServiceFabric.AspNetCore.Kestrel" Version="8.4.205-rc" />
     <PackageReference Include="Microsoft.ServiceFabric.Services" Version="8.4.268" />
     <PackageReference Include="Microsoft.ServiceFabric.Services.Remoting" Version="8.4.268" />
+    <PackageReference Include="QuestPDF" Version="2026.6.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
   </ItemGroup>

@@ -42,6 +42,16 @@ namespace TripService.Controllers
             return Ok(overview);
         }
 
+        [HttpGet("{id}/pdf")]
+        public async Task<IActionResult> DownloadPdf(int id, [FromServices] PdfReportService pdfService)
+        {
+            var overview = await _planService.GetOverviewAsync(id);
+            if (overview == null) return NotFound(new { message = "Plan putovanja nije pronađen." });
+
+            var pdfBytes = pdfService.GenerateTravelPlanReport(overview);
+            return File(pdfBytes, "application/pdf", $"PutniPlan_{overview.Plan.Title}.pdf");
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateTravelPlanDto dto)
         {

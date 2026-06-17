@@ -13,6 +13,10 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AccountService.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace AccountService
 {
@@ -50,13 +54,32 @@ namespace AccountService
                         builder.Services.AddEndpointsApiExplorer();
                         builder.Services.AddSwaggerGen();
                         builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                        builder.Services.AddScoped<JwtTokenGenerator>();
+                        builder.Services.AddScoped<AccountAuthService>();
+                        var jwtSecret = builder.Configuration["Jwt:Secret"]!;
+                        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                            .AddJwtBearer(options =>
+                            {
+                                options.TokenValidationParameters = new TokenValidationParameters
+                                {
+                                    ValidateIssuer = true,
+                                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                                    ValidateAudience = true,
+                                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                                    ValidateLifetime = true,
+                                    ValidateIssuerSigningKey = true,
+                                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+                                };
+                            });
+                        builder.Services.AddAuthorization();
                         var app = builder.Build();
                         if (app.Environment.IsDevelopment())
                         {
                         app.UseSwagger();
                         app.UseSwaggerUI();
                         }
+                        app.UseAuthentication();
                         app.UseAuthorization();
                         app.MapControllers();
                         
