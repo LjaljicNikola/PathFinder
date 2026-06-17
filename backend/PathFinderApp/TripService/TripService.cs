@@ -49,6 +49,7 @@ namespace TripService
                         builder.Services.AddScoped<TravelPlanService>();
                         builder.Services.AddScoped<DestinationService>();
                         builder.Services.AddScoped<ActivityService>();
+                        builder.Services.AddScoped<ExpenseService>();
                         builder.WebHost
                                     .UseKestrel(opt =>
                                     {
