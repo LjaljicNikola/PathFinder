@@ -19,6 +19,7 @@ using TripService.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using TripService.Middleware;
 
 namespace TripService
 {
@@ -54,6 +55,7 @@ namespace TripService
                         builder.Services.AddScoped<ActivityService>();
                         builder.Services.AddScoped<ExpenseService>();
                         builder.Services.AddScoped<ChecklistService>();
+                        builder.Services.AddScoped<SharingProxyService>();
                         builder.WebHost
                                     .UseKestrel(opt =>
                                     {
@@ -91,6 +93,7 @@ namespace TripService
                         app.UseSwagger();
                         app.UseSwaggerUI();
                         }
+                        app.UseMiddleware<ShareTokenMiddleware>();
                         app.UseHttpsRedirection();
                         app.UseAuthentication();
                         app.UseAuthorization();
