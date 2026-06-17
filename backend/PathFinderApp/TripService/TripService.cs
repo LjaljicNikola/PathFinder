@@ -47,6 +47,7 @@ namespace TripService
                         builder.Services.AddDbContext<TripDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
                         builder.Services.AddScoped<TravelPlanService>();
+                        builder.Services.AddScoped<DestinationService>();
                         builder.WebHost
                                     .UseKestrel(opt =>
                                     {
