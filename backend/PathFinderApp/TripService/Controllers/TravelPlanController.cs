@@ -1,0 +1,70 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using TripService.DTOs;
+using TripService.Services;
+
+namespace TripService.Controllers
+{
+    [ApiController]
+    [Route("api/travel-plans")]
+    public class TravelPlansController : ControllerBase
+    {
+        private readonly TravelPlanService _planService;
+
+        public TravelPlansController(TravelPlanService planService)
+        {
+            _planService = planService;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] int userId)
+        {
+            var plans = await _planService.GetAllForUserAsync(userId);
+            return Ok(plans);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var plan = await _planService.GetByIdAsync(id);
+            if (plan == null) return NotFound(new { message = "Plan putovanja nije pronađen." });
+            return Ok(plan);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateTravelPlanDto dto)
+        {
+            try
+            {
+                var created = await _planService.CreateAsync(dto);
+                return StatusCode(StatusCodes.Status201Created, created);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateTravelPlanDto dto)
+        {
+            try
+            {
+                var updated = await _planService.UpdateAsync(id, dto);
+                if (updated == null) return NotFound(new { message = "Plan putovanja nije pronađen." });
+                return Ok(updated);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var deleted = await _planService.DeleteAsync(id);
+            if (!deleted) return NotFound(new { message = "Plan putovanja nije pronađen." });
+            return NoContent();
+        }
+    }
+}

@@ -15,6 +15,7 @@ using Microsoft.ServiceFabric.Services.Runtime;
 using Microsoft.ServiceFabric.Data;
 using Microsoft.EntityFrameworkCore;
 using TripService.Data;
+using TripService.Services;
 
 namespace TripService
 {
@@ -45,6 +46,7 @@ namespace TripService
                         builder.Services.AddSingleton<StatelessServiceContext>(serviceContext);
                         builder.Services.AddDbContext<TripDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                        builder.Services.AddScoped<TravelPlanService>();
                         builder.WebHost
                                     .UseKestrel(opt =>
                                     {
