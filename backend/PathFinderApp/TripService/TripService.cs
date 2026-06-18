@@ -70,6 +70,15 @@ namespace TripService
                                     .UseServiceFabricIntegration(listener, ServiceFabricIntegrationOptions.None)
                                     .UseUrls(url);
                         builder.Services.AddControllers();
+                        builder.Services.AddCors(options =>
+                        {
+                            options.AddPolicy("AllowFrontend", policy =>
+                            {
+                                policy.WithOrigins("http://localhost:5173")
+                                      .AllowAnyHeader()
+                                      .AllowAnyMethod();
+                            });
+                        });
                         builder.Services.AddEndpointsApiExplorer();
                         builder.Services.AddSwaggerGen();
                         var jwtSecret = builder.Configuration["Jwt:Secret"]!;
@@ -96,6 +105,7 @@ namespace TripService
                         }
                         app.UseMiddleware<ShareTokenMiddleware>();
                         app.UseHttpsRedirection();
+                        app.UseCors("AllowFrontend");
                         app.UseAuthentication();
                         app.UseAuthorization();
                         app.MapControllers();
