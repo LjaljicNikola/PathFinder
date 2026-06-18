@@ -7,7 +7,9 @@ namespace TripService.Extensions
     {
         public static int GetUserId(this ClaimsPrincipal user)
         {
-            var idClaim = user.FindFirst(JwtRegisteredClaimNames.Sub)
+            var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)
+                ?? user.FindFirst(JwtRegisteredClaimNames.Sub)
+                ?? user.FindFirst("sub")
                 ?? throw new UnauthorizedAccessException("Token ne sadrži korisnički ID.");
 
             return int.Parse(idClaim.Value);
