@@ -1,0 +1,195 @@
+﻿import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { travelPlanApi } from '../api/travelPlanApi';
+import type { TravelPlanOverview } from '../types/TravelPlanOverview';
+import AddDestinationForm from '../../destination/components/AddDestinationForm';
+import { destinationApi } from '../../destination/api/destinationApi';
+import AddActivityForm from '../../activity/components/AddActivityForm';
+import { activityApi } from '../../activity/api/activityApi';
+import AddExpenseForm from '../../expense/components/AddExpenseForm';
+import { expenseApi } from '../../expense/api/expenseApi';
+
+export default function TravelPlanDetailPage() {
+    const { id } = useParams();
+    const [overview, setOverview] = useState<TravelPlanOverview | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const loadOverview = async () => {
+        try {
+            const data = await travelPlanApi.getOverview(Number(id));
+            setOverview(data);
+        } catch {
+            toast.error('Greška prilikom učitavanja plana.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        // eslint-disable-next-line
+        void loadOverview();
+    }, [id]);
+
+    const handleDeleteExpense = async (expenseId: number) => {
+        if (!window.confirm('Obrisati ovaj trošak?')) return;
+        try {
+            await expenseApi.remove(expenseId);
+            toast.success('Trošak je obrisan.');
+            void loadOverview();
+        } catch {
+            toast.error('Greška prilikom brisanja troška.');
+        }
+    };
+    
+    const handleDeleteDestination = async (destinationId: number) => {
+        if (!window.confirm('Obrisati ovu destinaciju?')) return;
+        try {
+            await destinationApi.remove(destinationId);
+            toast.success('Destinacija je obrisana.');
+            void loadOverview();
+        } catch {
+            toast.error('Greška prilikom brisanja destinacije.');
+        }
+    };
+
+    const handleDeleteActivity = async (activityId: number) => {
+        if (!window.confirm('Obrisati ovu aktivnost?')) return;
+        try {
+            await activityApi.remove(activityId);
+            toast.success('Aktivnost je obrisana.');
+            void loadOverview();
+        } catch {
+            toast.error('Greška prilikom brisanja aktivnosti.');
+        }
+    };
+
+    if (isLoading) {
+        return <div className="p-8 text-slate-500">Učitavanje...</div>;
+    }
+
+    if (!overview) {
+        return <div className="p-8 text-slate-500">Plan nije pronađen.</div>;
+    }
+
+    const { plan, destinations, expenses, budget, checklistItems } = overview;
+
+    return (
+        <div className="min-h-screen bg-slate-50 p-8">
+            <div className="mx-auto max-w-4xl">
+                <Link to="/" className="mb-4 inline-block text-sm text-indigo-600 hover:underline">
+                    ← Nazad na listu
+                </Link>
+
+                <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+                    <h1 className="text-2xl font-semibold text-slate-800">{plan.title}</h1>
+                    <p className="text-sm text-slate-500">
+                        {new Date(plan.startDate).toLocaleDateString('sr-Latn')} - {new Date(plan.endDate).toLocaleDateString('sr-Latn')}
+                    </p>
+                    <p className="mt-2 text-slate-600">{plan.description}</p>
+                    {plan.notes && <p className="mt-2 text-sm text-slate-500 italic">Napomena: {plan.notes}</p>}
+                </div>
+
+                <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-800">Budžet</h2>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p className="text-xs text-slate-500">Planirano</p>
+                            <p className="text-xl font-semibold text-slate-800">{budget.plannedBudget.toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500">Potrošeno</p>
+                            <p className="text-xl font-semibold text-red-600">{budget.totalSpent.toFixed(2)}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-500">Preostalo</p>
+                            <p className="text-xl font-semibold text-green-600">{budget.remainingBudget.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-800">Destinacije</h2>
+                    <AddDestinationForm travelPlanId={plan.id} onAdded={loadOverview} />
+                    {destinations.length === 0 ? (
+                        <p className="text-sm text-slate-500">Nema dodanih destinacija.</p>
+                    ) : (
+                        <div className="space-y-4">
+                            {destinations.map((d) => (
+                                <div key={d.destination.id} className="rounded-md border border-slate-200 p-4">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <p className="font-medium text-slate-800">{d.destination.name} ({d.destination.location})</p>
+                                            <p className="text-xs text-slate-500">
+                                                {new Date(d.destination.arrivalDate).toLocaleDateString('sr-Latn')} - {new Date(d.destination.departureDate).toLocaleDateString('sr-Latn')}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteDestination(d.destination.id)}
+                                            className="text-xs text-red-600 hover:underline"
+                                        >
+                                            Obriši
+                                        </button>
+                                    </div>
+                                    {d.activities.length > 0 && (
+                                        <ul className="mt-2 space-y-1 pl-4 text-sm text-slate-600">
+                                            {d.activities.map((a) => (
+                                                <li key={a.id} className="flex items-center justify-between">
+                                                    <span>• {a.name} — {new Date(a.date).toLocaleDateString('sr-Latn')} ({a.status})</span>
+                                                    <button
+                                                        onClick={() => handleDeleteActivity(a.id)}
+                                                        className="text-xs text-red-600 hover:underline"
+                                                    >
+                                                        Obriši
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    <AddActivityForm destinationId={d.destination.id} onAdded={loadOverview} />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-800">Troškovi</h2>
+                    <AddExpenseForm travelPlanId={plan.id} remainingBudget={budget.remainingBudget} onAdded={loadOverview} />
+                    {expenses.length === 0 ? (
+                        <p className="mt-3 text-sm text-slate-500">Nema evidentiranih troškova.</p>
+                    ) : (
+                        <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                            {expenses.map((e) => (
+                                <li key={e.id} className="flex items-center justify-between">
+                                    <span>{e.name} ({e.category})</span>
+                                    <span className="flex items-center gap-2">
+                                        {e.amount.toFixed(2)}
+                                        <button onClick={() => handleDeleteExpense(e.id)} className="text-xs text-red-600 hover:underline">
+                                            Obriši
+                                        </button>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                <div className="rounded-xl bg-white p-6 shadow-sm">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-800">Checklist</h2>
+                    {checklistItems.length === 0 ? (
+                        <p className="text-sm text-slate-500">Nema stavki na checklisti.</p>
+                    ) : (
+                        <ul className="space-y-1 text-sm text-slate-600">
+                            {checklistItems.map((c) => (
+                                <li key={c.id}>
+                                    {c.isCompleted ? '☑' : '☐'} {c.title}
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
