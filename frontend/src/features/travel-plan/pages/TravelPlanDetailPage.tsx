@@ -11,6 +11,7 @@ import AddExpenseForm from '../../expense/components/AddExpenseForm';
 import { expenseApi } from '../../expense/api/expenseApi';
 import AddChecklistItemForm from '../../checklist/components/AddChecklistItemForm';
 import { checklistApi } from '../../checklist/api/checklistApi';
+import tripApi from '../../../api/tripApi';
 
 export default function TravelPlanDetailPage() {
     const { id } = useParams();
@@ -32,6 +33,24 @@ export default function TravelPlanDetailPage() {
         // eslint-disable-next-line
         void loadOverview();
     }, [id]);
+
+    const handleDownloadPdf = async () => {
+        try {
+            const response = await tripApi.get(`/travel-plans/${plan.id}/pdf`, {
+                responseType: 'blob',
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `PutniPlan_${plan.title}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch {
+            toast.error('Greška prilikom preuzimanja PDF izvještaja.');
+        }
+    };
 
     const handleToggleChecklistItem = async (itemId: number, title: string, isCompleted: boolean) => {
         try {
@@ -102,7 +121,15 @@ export default function TravelPlanDetailPage() {
                 </Link>
 
                 <div className="mb-6 rounded-xl bg-white p-6 shadow-sm">
-                    <h1 className="text-2xl font-semibold text-slate-800">{plan.title}</h1>
+                    <div className="flex items-start justify-between">
+                        <h1 className="text-2xl font-semibold text-slate-800">{plan.title}</h1>
+                        <button
+                            onClick={handleDownloadPdf}
+                            className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-200"
+                        >
+                            Preuzmi PDF
+                        </button>
+                    </div>
                     <p className="text-sm text-slate-500">
                         {new Date(plan.startDate).toLocaleDateString('sr-Latn')} - {new Date(plan.endDate).toLocaleDateString('sr-Latn')}
                     </p>
