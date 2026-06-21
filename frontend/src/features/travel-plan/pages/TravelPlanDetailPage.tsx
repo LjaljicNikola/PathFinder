@@ -9,6 +9,8 @@ import AddActivityForm from '../../activity/components/AddActivityForm';
 import { activityApi } from '../../activity/api/activityApi';
 import AddExpenseForm from '../../expense/components/AddExpenseForm';
 import { expenseApi } from '../../expense/api/expenseApi';
+import AddChecklistItemForm from '../../checklist/components/AddChecklistItemForm';
+import { checklistApi } from '../../checklist/api/checklistApi';
 
 export default function TravelPlanDetailPage() {
     const { id } = useParams();
@@ -30,6 +32,24 @@ export default function TravelPlanDetailPage() {
         // eslint-disable-next-line
         void loadOverview();
     }, [id]);
+
+    const handleToggleChecklistItem = async (itemId: number, title: string, isCompleted: boolean) => {
+        try {
+            await checklistApi.update(itemId, { title, isCompleted: !isCompleted });
+            void loadOverview();
+        } catch {
+            toast.error('Greška prilikom izmjene stavke.');
+        }
+    };
+
+    const handleDeleteChecklistItem = async (itemId: number) => {
+        try {
+            await checklistApi.remove(itemId);
+            void loadOverview();
+        } catch {
+            toast.error('Greška prilikom brisanja stavke.');
+        }
+    };
 
     const handleDeleteExpense = async (expenseId: number) => {
         if (!window.confirm('Obrisati ovaj trošak?')) return;
@@ -177,13 +197,24 @@ export default function TravelPlanDetailPage() {
 
                 <div className="rounded-xl bg-white p-6 shadow-sm">
                     <h2 className="mb-3 text-lg font-semibold text-slate-800">Checklist</h2>
+                    <AddChecklistItemForm travelPlanId={plan.id} onAdded={loadOverview} />
                     {checklistItems.length === 0 ? (
                         <p className="text-sm text-slate-500">Nema stavki na checklisti.</p>
                     ) : (
                         <ul className="space-y-1 text-sm text-slate-600">
                             {checklistItems.map((c) => (
-                                <li key={c.id}>
-                                    {c.isCompleted ? '☑' : '☐'} {c.title}
+                                <li key={c.id} className="flex items-center justify-between">
+                                    <label className="flex cursor-pointer items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={c.isCompleted}
+                                            onChange={() => handleToggleChecklistItem(c.id, c.title, c.isCompleted)}
+                                        />
+                                        <span className={c.isCompleted ? 'line-through text-slate-400' : ''}>{c.title}</span>
+                                    </label>
+                                    <button onClick={() => handleDeleteChecklistItem(c.id)} className="text-xs text-red-600 hover:underline">
+                                        Obriši
+                                    </button>
                                 </li>
                             ))}
                         </ul>
