@@ -8,6 +8,7 @@ import RegisterPage from './features/auth/pages/RegisterPage';
 import TravelPlansListPage from './features/travel-plan/pages/TravelPlanListPage';
 import TravelPlanFormPage from './features/travel-plan/pages/TravelPlanFormPage';
 import TravelPlanDetailPage from './features/travel-plan/pages/TravelPlanDetailPage';
+import SharedPlanViewPage from './features/sharing/pages/SharedPlanViewPage';
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
                 <Routes>
                     <Route path="/prijava" element={<LoginPage />} />
                     <Route path="/registracija" element={<RegisterPage />} />
+                    <Route path="/deljeno/:token" element={<SharedPlanViewPage />} />
                     <Route
                         path="/"
                         element={
