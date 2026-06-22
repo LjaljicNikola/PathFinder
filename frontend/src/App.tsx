@@ -9,12 +9,15 @@ import TravelPlansListPage from './features/travel-plan/pages/TravelPlanListPage
 import TravelPlanFormPage from './features/travel-plan/pages/TravelPlanFormPage';
 import TravelPlanDetailPage from './features/travel-plan/pages/TravelPlanDetailPage';
 import SharedPlanViewPage from './features/sharing/pages/SharedPlanViewPage';
+import Navbar from './components/Navbar';
+import AdminPage from './features/admin/pages/AdminPage';
 
 function App() {
     return (
         <AuthProvider>
             <BrowserRouter>
                 <ToastContainer position="top-right" autoClose={3000} />
+                <Navbar />
                 <Routes>
                     <Route path="/prijava" element={<LoginPage />} />
                     <Route path="/registracija" element={<RegisterPage />} />
@@ -48,6 +51,14 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <TravelPlanDetailPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin"
+                        element={
+                            <ProtectedRoute>
+                                <AdminPage />
                             </ProtectedRoute>
                         }
                     />
