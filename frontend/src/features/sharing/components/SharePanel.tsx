@@ -2,6 +2,7 @@
 import { toast } from 'react-toastify';
 import { sharingApi } from '../api/sharingApi';
 import type { ShareToken } from '../types/ShareToken';
+import QRCode from 'react-qr-code';
 
 interface Props {
     travelPlanId: number;
@@ -11,6 +12,7 @@ export default function SharePanel({ travelPlanId }: Props) {
     const [tokens, setTokens] = useState<ShareToken[]>([]);
     const [accessLevel, setAccessLevel] = useState('View');
     const [isCreating, setIsCreating] = useState(false);
+    const [expandedToken, setExpandedToken] = useState<string | null>(null);
 
     useEffect(() => {
         // eslint-disable-next-line
@@ -79,30 +81,40 @@ export default function SharePanel({ travelPlanId }: Props) {
                 </button>
             </div>
 
-            {tokens.length === 0 ? (
-                <p className="text-sm text-slate-500">Nema aktivnih linkova za dijeljenje.</p>
-            ) : (
-                <ul className="space-y-2">
-                    {tokens.map((t) => (
-                        <li key={t.token} className="flex items-center justify-between rounded-md border border-slate-200 p-2 text-sm">
-                            <div>
-                                <span className="font-mono text-xs text-slate-500">{t.token.slice(0, 16)}...</span>
-                                <span className="ml-2 rounded bg-slate-100 px-2 py-0.5 text-xs">
-                                    {t.accessLevel === 'Edit' ? 'Uređivanje' : 'Pregled'}
-                                </span>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => handleCopy(t.token)} className="text-xs text-indigo-600 hover:underline">
-                                    Kopiraj link
-                                </button>
-                                <button onClick={() => handleRevoke(t.token)} className="text-xs text-red-600 hover:underline">
-                                    Opozovi
-                                </button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            )}
+            {tokens.map((t) => (
+                <li key={t.token} className="rounded-md border border-slate-200">
+                    <div
+                        className="flex cursor-pointer items-center justify-between p-2 hover:bg-slate-50"
+                        onClick={() => setExpandedToken(expandedToken === t.token ? null : t.token)}
+                    >
+                        <div>
+                            <span className="font-mono text-xs text-slate-500">{t.token.slice(0, 16)}...</span>
+                            <span className="ml-2 rounded bg-slate-100 px-2 py-0.5 text-xs">
+                                {t.accessLevel === 'Edit' ? 'Uređivanje' : 'Pregled'}
+                            </span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleCopy(t.token); }}
+                                className="text-xs text-indigo-600 hover:underline"
+                            >
+                                Kopiraj link
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleRevoke(t.token); }}
+                                className="text-xs text-red-600 hover:underline"
+                            >
+                                Opozovi
+                            </button>
+                        </div>
+                    </div>
+                    {expandedToken === t.token && (
+                        <div className="flex justify-center border-t border-slate-100 p-4">
+                            <QRCode value={buildShareUrl(t.token)} size={160} />
+                        </div>
+                    )}
+                </li>
+            ))}
         </div>
     );
 }

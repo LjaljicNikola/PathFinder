@@ -14,12 +14,14 @@ import { checklistApi } from '../../checklist/api/checklistApi';
 import tripApi from '../../../api/tripApi';
 import SharePanel from '../../sharing/components/SharePanel';
 import { useAuth } from '../../../context/useAuth';
+import EditDestinationForm from '../../destination/components/EditDestinationForm';
 
 export default function TravelPlanDetailPage() {
     const { id } = useParams();
     const { currentUser } = useAuth();
     const [overview, setOverview] = useState<TravelPlanOverview | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [editingDestinationId, setEditingDestinationId] = useState<number | null>(null);
     
 
     const loadOverview = async () => {
@@ -182,7 +184,20 @@ export default function TravelPlanDetailPage() {
                                         >
                                             Obriši
                                         </button>
+                                        <button
+                                            onClick={() => setEditingDestinationId(d.destination.id)}
+                                            className="text-xs text-indigo-600 hover:underline"
+                                        >
+                                            Izmeni
+                                        </button>
                                     </div>
+                                    {editingDestinationId === d.destination.id && (
+                                        <EditDestinationForm
+                                            destination={d.destination}
+                                            onSaved={() => { setEditingDestinationId(null); void loadOverview(); }}
+                                            onCancel={() => setEditingDestinationId(null)}
+                                        />
+                                    )}
                                     {d.activities.length > 0 && (
                                         <ul className="mt-2 space-y-1 pl-4 text-sm text-slate-600">
                                             {d.activities.map((a) => (
