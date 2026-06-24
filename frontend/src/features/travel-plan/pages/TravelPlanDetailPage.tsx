@@ -140,6 +140,12 @@ export default function TravelPlanDetailPage() {
                         >
                             Preuzmi PDF
                         </button>
+                        <Link
+                            to={`/planovi/${plan.id}/kalendar`}
+                            className="rounded-md bg-slate-100 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-200"
+                        >
+                            Kalendar
+                        </Link>
                     </div>
                     <p className="text-sm text-slate-500">
                         {new Date(plan.startDate).toLocaleDateString('sr-Latn')} - {new Date(plan.endDate).toLocaleDateString('sr-Latn')}

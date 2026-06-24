@@ -11,6 +11,7 @@ import TravelPlanDetailPage from './features/travel-plan/pages/TravelPlanDetailP
 import SharedPlanViewPage from './features/sharing/pages/SharedPlanViewPage';
 import Navbar from './components/Navbar';
 import AdminPage from './features/admin/pages/AdminPage';
+import CalendarPage from './features/activity/pages/CalendarPage';
 
 function App() {
     return (
@@ -62,7 +63,20 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route
+                        path="*"
+                        element={
+                            <Navigate to="/" replace />
+                        }
+                    />
+                    <Route
+                        path="/planovi/:id/kalendar"
+                        element={
+                            <ProtectedRoute>
+                                <CalendarPage />
+                            </ProtectedRoute>
+                        }
+                    />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>
