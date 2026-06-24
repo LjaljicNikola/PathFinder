@@ -16,6 +16,7 @@ import SharePanel from '../../sharing/components/SharePanel';
 import { useAuth } from '../../../context/useAuth';
 import EditDestinationForm from '../../destination/components/EditDestinationForm';
 import EditActivityForm from '../../activity/components/EditActivityForm';
+import EditExpenseForm from '../../expense/components/EditExpenseForm';
 
 export default function TravelPlanDetailPage() {
     const { id } = useParams();
@@ -24,6 +25,7 @@ export default function TravelPlanDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [editingDestinationId, setEditingDestinationId] = useState<number | null>(null);
     const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
+    const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
     
 
     const loadOverview = async () => {
@@ -246,14 +248,26 @@ export default function TravelPlanDetailPage() {
                     ) : (
                         <ul className="mt-3 space-y-1 text-sm text-slate-600">
                             {expenses.map((e) => (
-                                <li key={e.id} className="flex items-center justify-between">
-                                    <span>{e.name} ({e.category})</span>
-                                    <span className="flex items-center gap-2">
-                                        {e.amount.toFixed(2)}
-                                        <button onClick={() => handleDeleteExpense(e.id)} className="text-xs text-red-600 hover:underline">
-                                            Obriši
-                                        </button>
-                                    </span>
+                                <li key={e.id} className="flex flex-col">
+                                    <div className="flex items-center justify-between">
+                                        <span>{e.name} ({e.category})</span>
+                                        <span className="flex items-center gap-2">
+                                            {e.amount.toFixed(2)}
+                                            <button onClick={() => setEditingExpenseId(e.id)} className="text-xs text-indigo-600 hover:underline">
+                                                Izmijeni
+                                            </button>
+                                            <button onClick={() => handleDeleteExpense(e.id)} className="text-xs text-red-600 hover:underline">
+                                                Obriši
+                                            </button>
+                                        </span>
+                                    </div>
+                                    {editingExpenseId === e.id && (
+                                        <EditExpenseForm
+                                            expense={e}
+                                            onSaved={() => { setEditingExpenseId(null); void loadOverview(); }}
+                                            onCancel={() => setEditingExpenseId(null)}
+                                        />
+                                    )}
                                 </li>
                             ))}
                         </ul>
