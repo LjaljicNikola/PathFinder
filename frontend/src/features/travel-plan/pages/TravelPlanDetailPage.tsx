@@ -15,6 +15,7 @@ import tripApi from '../../../api/tripApi';
 import SharePanel from '../../sharing/components/SharePanel';
 import { useAuth } from '../../../context/useAuth';
 import EditDestinationForm from '../../destination/components/EditDestinationForm';
+import EditActivityForm from '../../activity/components/EditActivityForm';
 
 export default function TravelPlanDetailPage() {
     const { id } = useParams();
@@ -22,6 +23,7 @@ export default function TravelPlanDetailPage() {
     const [overview, setOverview] = useState<TravelPlanOverview | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [editingDestinationId, setEditingDestinationId] = useState<number | null>(null);
+    const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
     
 
     const loadOverview = async () => {
@@ -209,10 +211,26 @@ export default function TravelPlanDetailPage() {
                                                     >
                                                         Obriši
                                                     </button>
+                                                    <button
+                                                        onClick={() => setEditingActivityId(a.id)}
+                                                        className="text-xs text-indigo-600 hover:underline"
+                                                    >
+                                                        Izmeni
+                                                    </button>
+                                                    {editingActivityId === a.id && (
+                                                        <EditActivityForm
+                                                            activity={a}
+                                                            onSaved={() => { setEditingActivityId(null); void loadOverview(); }}
+                                                            onCancel={() => setEditingActivityId(null)}
+                                                        />
+                                                    )}
                                                 </li>
+                                                    
                                             ))}
                                         </ul>
+
                                     )}
+                                    
                                     <AddActivityForm destinationId={d.destination.id} onAdded={loadOverview} />
                                 </div>
                             ))}
