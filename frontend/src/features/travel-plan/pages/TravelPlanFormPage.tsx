@@ -18,37 +18,98 @@ export default function TravelPlanFormPage() {
     const [plannedBudget, setPlannedBudget] = useState('');
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const loadPlan = async () => {
-        try {
-            const plan = await travelPlanApi.getById(Number(id));
-            setTitle(plan.title);
-            setDescription(plan.description);
-            setStartDate(plan.startDate.split('T')[0]);
-            setEndDate(plan.endDate.split('T')[0]);
-            setPlannedBudget(plan.plannedBudget.toString());
-            setNotes(plan.notes);
-        } catch {
-            toast.error('Greška prilikom učitavanja plana.');
+    // Validation errors
+    const [errors, setErrors] = useState({
+        startDate: '',
+        endDate: '',
+        budget: '',
+    });
+
+    // Load plan data
+    useEffect(() => {
+        const loadPlan = async () => {
+            if (!isEditMode) return;
+
+            setIsLoading(true);
+            try {
+                const plan = await travelPlanApi.getById(Number(id));
+                setTitle(plan.title);
+                setDescription(plan.description);
+                setStartDate(plan.startDate.split('T')[0]);
+                setEndDate(plan.endDate.split('T')[0]);
+                setPlannedBudget(plan.plannedBudget.toString());
+                setNotes(plan.notes);
+            } catch {
+                toast.error('Greska prilikom ucitavanja plana.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadPlan();
+    }, [id, isEditMode]);
+
+    // Real-time validation
+    const validateDates = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const newErrors = { startDate: '', endDate: '', budget: '' };
+        let isValid = true;
+
+        // Start date cannot be in the past
+        if (startDate && start < today) {
+            newErrors.startDate = 'Pocetni datum ne moze biti u proslosti';
+            isValid = false;
         }
+
+        // End date must be >= start date
+        if (startDate && endDate && end < start) {
+            newErrors.endDate = 'Krajnji datum mora biti nakon pocetnog datuma';
+            isValid = false;
+        }
+
+        // End date cannot be in the past if start date is not set
+        if (endDate && end < today && !startDate) {
+            newErrors.endDate = 'Krajnji datum ne moze biti u proslosti';
+            isValid = false;
+        }
+
+        // Budget validation
+        if (plannedBudget && Number(plannedBudget) < 0) {
+            newErrors.budget = 'Budzet ne moze biti negativan';
+            isValid = false;
+        }
+
+        setErrors(newErrors);
+        return isValid;
     };
 
-    useEffect(() => {
-        if (isEditMode) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            loadPlan();
+    // Handle date changes
+    const handleDateChange = (type: 'start' | 'end', value: string) => {
+        if (type === 'start') {
+            setStartDate(value);
+            // If end date is before new start date, clear it
+            if (endDate && new Date(endDate) < new Date(value)) {
+                setEndDate('');
+            }
+        } else {
+            setEndDate(value);
         }
-    }, [id]);
+        validateDates();
+    };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
 
-        if (new Date(endDate) < new Date(startDate)) {
-            toast.error('Krajnji datum ne može biti prije početnog datuma.');
-            return;
-        }
-        if (Number(plannedBudget) < 0) {
-            toast.error('Budžet ne može biti negativan.');
+        // Check validation before submit
+        if (!validateDates()) {
+            toast.error('Molimo ispravite greske u formi.');
             return;
         }
 
@@ -78,11 +139,36 @@ export default function TravelPlanFormPage() {
             }
             navigate('/');
         } catch {
-            toast.error('Greška prilikom čuvanja plana.');
+            toast.error('Greska prilikom cuvanja plana.');
         } finally {
             setIsSubmitting(false);
         }
     };
+
+    // Check if form is valid (for disabling submit button)
+    const isFormValid = () => {
+        return (
+            title.trim() !== '' &&
+            startDate !== '' &&
+            endDate !== '' &&
+            plannedBudget !== '' &&
+            Number(plannedBudget) >= 0 &&
+            !errors.startDate &&
+            !errors.endDate &&
+            !errors.budget
+        );
+    };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-700 border-t-transparent mx-auto"></div>
+                    <p className="mt-4 text-slate-500">Ucitavanje plana...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -103,7 +189,7 @@ export default function TravelPlanFormPage() {
                         </h1>
                         <p className="mt-1 text-sm text-slate-500">
                             {isEditMode
-                                ? 'Ažurirajte detalje vašeg plana putovanja'
+                                ? 'Azurirajte detalje vaseg plana putovanja'
                                 : 'Kreirajte novi plan putovanja i organizujte svoje avanture'}
                         </p>
                     </div>
@@ -118,7 +204,7 @@ export default function TravelPlanFormPage() {
                             <input
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                placeholder="Unesite naziv vašeg putovanja"
+                                placeholder="Unesite naziv vaseg putovanja"
                                 required
                                 className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             />
@@ -133,7 +219,7 @@ export default function TravelPlanFormPage() {
                             <textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Opišite vaše putovanje..."
+                                placeholder="Opisite vase putovanje..."
                                 rows={3}
                                 className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             />
@@ -144,15 +230,25 @@ export default function TravelPlanFormPage() {
                             <div>
                                 <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-slate-700">
                                     <Calendar className="h-4 w-4 text-yellow-500" />
-                                    Početni datum <span className="text-red-500">*</span>
+                                    Pocetni datum <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="date"
                                     value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
+                                    onChange={(e) => handleDateChange('start', e.target.value)}
                                     required
-                                    className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${errors.startDate
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/20'
+                                        }`}
                                 />
+                                {errors.startDate && (
+                                    <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                                        <AlertCircle className="h-3 w-3" />
+                                        {errors.startDate}
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -162,10 +258,20 @@ export default function TravelPlanFormPage() {
                                 <input
                                     type="date"
                                     value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
+                                    onChange={(e) => handleDateChange('end', e.target.value)}
                                     required
-                                    className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    min={startDate || new Date().toISOString().split('T')[0]}
+                                    className={`w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-2 ${errors.endDate
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/20'
+                                        }`}
                                 />
+                                {errors.endDate && (
+                                    <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                                        <AlertCircle className="h-3 w-3" />
+                                        {errors.endDate}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -173,7 +279,7 @@ export default function TravelPlanFormPage() {
                         <div className="mb-5">
                             <label className="mb-1.5 flex items-center gap-2 text-sm font-medium text-slate-700">
                                 <DollarSign className="h-4 w-4 text-yellow-500" />
-                                Planirani budžet <span className="text-red-500">*</span>
+                                Planirani budzet <span className="text-red-500">*</span>
                             </label>
                             <div className="relative">
                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
@@ -182,13 +288,29 @@ export default function TravelPlanFormPage() {
                                     min="0"
                                     step="0.01"
                                     value={plannedBudget}
-                                    onChange={(e) => setPlannedBudget(e.target.value)}
+                                    onChange={(e) => {
+                                        setPlannedBudget(e.target.value);
+                                        validateDates();
+                                    }}
                                     placeholder="0.00"
                                     required
-                                    className="w-full rounded-lg border border-slate-200 pl-10 pr-4 py-2.5 text-sm transition-all focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    className={`w-full rounded-lg border px-4 py-2.5 pl-10 text-sm transition-all focus:outline-none focus:ring-2 ${errors.budget
+                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                                            : 'border-slate-200 focus:border-blue-500 focus:ring-blue-500/20'
+                                        }`}
                                 />
                             </div>
-                            <p className="mt-1 text-xs text-slate-400">Unesite ukupan planirani budžet za putovanje</p>
+                            {errors.budget && (
+                                <p className="mt-1 flex items-center gap-1 text-xs text-red-500">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {errors.budget}
+                                </p>
+                            )}
+                            {!errors.budget && plannedBudget && Number(plannedBudget) >= 0 && (
+                                <p className="mt-1 text-xs text-green-600">
+                                    Budzet je validan
+                                </p>
+                            )}
                         </div>
 
                         {/* Notes */}
@@ -209,18 +331,18 @@ export default function TravelPlanFormPage() {
                         {/* Submit button */}
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 py-3 font-medium text-white transition-all hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
+                            disabled={isSubmitting || !isFormValid()}
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 py-3 font-medium text-white transition-all hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? (
                                 <>
                                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                    Čuvanje...
+                                    Cuvanje...
                                 </>
                             ) : (
                                 <>
                                     <Save className="h-5 w-5" />
-                                    {isEditMode ? 'Sačuvaj izmjene' : 'Kreiraj plan'}
+                                    {isEditMode ? 'Sacuvaj izmjene' : 'Kreiraj plan'}
                                 </>
                             )}
                         </button>
@@ -228,7 +350,7 @@ export default function TravelPlanFormPage() {
                         {/* Info note */}
                         <p className="mt-3 flex items-center justify-center gap-1 text-xs text-slate-400">
                             <AlertCircle className="h-3 w-3" />
-                            Polja označena sa <span className="text-red-500">*</span> su obavezna
+                            Polja oznacena sa <span className="text-red-500">*</span> su obavezna
                         </p>
                     </form>
                 </div>

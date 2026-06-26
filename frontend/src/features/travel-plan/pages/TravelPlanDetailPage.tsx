@@ -18,6 +18,7 @@ import { useAuth } from '../../../context/useAuth';
 import EditDestinationForm from '../../destination/components/EditDestinationForm';
 import EditActivityForm from '../../activity/components/EditActivityForm';
 import EditExpenseForm from '../../expense/components/EditExpenseForm';
+import ConfirmationModal from '../../../components/ConfirmationModal';
 
 const STATUS_COLORS: Record<string, string> = {
     Planned: 'bg-blue-100 text-blue-700',
@@ -29,7 +30,7 @@ const STATUS_COLORS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
     Planned: 'Planirano',
     Booked: 'Rezervisano',
-    Completed: 'Završeno',
+    Completed: 'Zavrseno',
     Cancelled: 'Otkazano',
 };
 
@@ -42,103 +43,175 @@ export default function TravelPlanDetailPage() {
     const [editingActivityId, setEditingActivityId] = useState<number | null>(null);
     const [editingExpenseId, setEditingExpenseId] = useState<number | null>(null);
 
-    const loadOverview = async () => {
-        try {
-            const data = await travelPlanApi.getOverview(Number(id));
-            setOverview(data);
-        } catch {
-            toast.error('Greška prilikom učitavanja plana.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const [modalConfig, setModalConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        confirmText?: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+    });
 
     useEffect(() => {
-        // eslint-disable-next-line
-        void loadOverview();
+        const loadOverview = async () => {
+            try {
+                const data = await travelPlanApi.getOverview(Number(id));
+                setOverview(data);
+            } catch {
+                toast.error('Greska prilikom ucitavanja plana.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadOverview();
     }, [id]);
 
     const handleDownloadPdf = async () => {
+        if (!overview) return;
         try {
-            const response = await tripApi.get(`/travel-plans/${plan.id}/pdf`, { responseType: 'blob' });
+            const response = await tripApi.get(`/travel-plans/${overview.plan.id}/pdf`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `PutniPlan_${plan.title}.pdf`);
+            link.setAttribute('download', `PutniPlan_${overview.plan.title}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
         } catch {
-            toast.error('Greška prilikom preuzimanja PDF izvještaja.');
+            toast.error('Greska prilikom preuzimanja PDF izvjestaja.');
         }
     };
 
     const handleToggleChecklistItem = async (itemId: number, title: string, isCompleted: boolean) => {
         try {
             await checklistApi.update(itemId, { title, isCompleted: !isCompleted });
-            void loadOverview();
+            const data = await travelPlanApi.getOverview(Number(id));
+            setOverview(data);
         } catch {
-            toast.error('Greška prilikom izmjene stavke.');
+            toast.error('Greska prilikom izmjene stavke.');
         }
     };
 
     const handleDeleteChecklistItem = async (itemId: number) => {
-        try {
-            await checklistApi.remove(itemId);
-            void loadOverview();
-        } catch {
-            toast.error('Greška prilikom brisanja stavke.');
-        }
+        setModalConfig({
+            isOpen: true,
+            title: 'Brisanje stavke',
+            message: 'Da li ste sigurni da zelite obrisati ovu stavku sa checkliste?',
+            onConfirm: async () => {
+                try {
+                    await checklistApi.remove(itemId);
+                    toast.success('Stavka je obrisana.');
+                    const data = await travelPlanApi.getOverview(Number(id));
+                    setOverview(data);
+                } catch {
+                    toast.error('Greska prilikom brisanja stavke.');
+                }
+            }
+        });
     };
 
     const handleDeleteExpense = async (expenseId: number) => {
-        if (!window.confirm('Obrisati ovaj trošak?')) return;
-        try {
-            await expenseApi.remove(expenseId);
-            toast.success('Trošak je obrisan.');
-            void loadOverview();
-        } catch {
-            toast.error('Greška prilikom brisanja troška.');
-        }
+        setModalConfig({
+            isOpen: true,
+            title: 'Brisanje troška',
+            message: 'Da li ste sigurni da zelite obrisati ovaj trosak?',
+            onConfirm: async () => {
+                try {
+                    await expenseApi.remove(expenseId);
+                    toast.success('Trosak je obrisan.');
+                    const data = await travelPlanApi.getOverview(Number(id));
+                    setOverview(data);
+                } catch {
+                    toast.error('Greska prilikom brisanja troška.');
+                }
+            }
+        });
     };
 
     const handleDeleteDestination = async (destinationId: number) => {
-        if (!window.confirm('Obrisati ovu destinaciju?')) return;
-        try {
-            await destinationApi.remove(destinationId);
-            toast.success('Destinacija je obrisana.');
-            void loadOverview();
-        } catch {
-            toast.error('Greška prilikom brisanja destinacije.');
-        }
+        setModalConfig({
+            isOpen: true,
+            title: 'Brisanje destinacije',
+            message: 'Da li ste sigurni da zelite obrisati ovu destinaciju?',
+            onConfirm: async () => {
+                try {
+                    await destinationApi.remove(destinationId);
+                    toast.success('Destinacija je obrisana.');
+                    const data = await travelPlanApi.getOverview(Number(id));
+                    setOverview(data);
+                } catch {
+                    toast.error('Greska prilikom brisanja destinacije.');
+                }
+            }
+        });
     };
 
     const handleDeleteActivity = async (activityId: number) => {
-        if (!window.confirm('Obrisati ovu aktivnost?')) return;
-        try {
-            await activityApi.remove(activityId);
-            toast.success('Aktivnost je obrisana.');
-            void loadOverview();
-        } catch {
-            toast.error('Greška prilikom brisanja aktivnosti.');
-        }
+        setModalConfig({
+            isOpen: true,
+            title: 'Brisanje aktivnosti',
+            message: 'Da li ste sigurni da zelite obrisati ovu aktivnost?',
+            onConfirm: async () => {
+                try {
+                    await activityApi.remove(activityId);
+                    toast.success('Aktivnost je obrisana.');
+                    const data = await travelPlanApi.getOverview(Number(id));
+                    setOverview(data);
+                } catch {
+                    toast.error('Greska prilikom brisanja aktivnosti.');
+                }
+            }
+        });
     };
 
-    if (isLoading) return <div className="flex min-h-screen items-center justify-center text-slate-500">Učitavanje...</div>;
-    if (!overview) return <div className="flex min-h-screen items-center justify-center text-slate-500">Plan nije pronađen.</div>;
+    const getProgressBarColor = (percentage: number) => {
+        if (percentage < 50) return 'bg-green-500';
+        if (percentage < 80) return 'bg-yellow-500';
+        if (percentage < 100) return 'bg-orange-500';
+        return 'bg-red-600';
+    };
+
+    const getStatusText = (percentage: number) => {
+        if (percentage < 50) return 'Troškovi su niski.';
+        if (percentage < 80) return 'Troškovi srednje visoki.';
+        if (percentage < 100) return 'Paznja, blizu limitas ste!';
+        return 'Prekoracili ste limit!';
+    };
+
+    if (isLoading) return <div className="flex min-h-screen items-center justify-center text-slate-500">Ucitavanje...</div>;
+    if (!overview) return <div className="flex min-h-screen items-center justify-center text-slate-500">Plan nije pronadjen.</div>;
 
     const { plan, destinations, expenses, budget, checklistItems } = overview;
     const isOwner = currentUser?.id === plan.userId;
 
+    const spentPercentage = budget.plannedBudget > 0
+        ? Math.min((budget.totalSpent / budget.plannedBudget) * 100, 100)
+        : 0;
+    const progressColor = getProgressBarColor(spentPercentage);
+    const statusText = getStatusText(spentPercentage);
+
     return (
         <div className="min-h-screen bg-slate-50">
+            <ConfirmationModal
+                isOpen={modalConfig.isOpen}
+                onClose={() => setModalConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={modalConfig.onConfirm}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                confirmText={modalConfig.confirmText || 'Obrisi'}
+            />
+
             <div className="mx-auto max-w-4xl px-8 py-10">
                 <Link to="/" className="mb-6 inline-flex items-center gap-1 text-sm text-blue-700 hover:underline">
                     <ArrowLeft className="h-4 w-4" /> Nazad na listu
                 </Link>
 
-                {/* Header */}
                 <div className="mb-6 rounded-xl border-l-4 border-blue-700 bg-white p-6 shadow-sm">
                     <div className="flex items-start justify-between">
                         <div>
@@ -163,18 +236,18 @@ export default function TravelPlanDetailPage() {
                     </div>
                 </div>
 
-                {/* Budžet */}
                 <div className="mb-6 rounded-xl bg-white p-6 shadow-sm border border-blue-100 border-l-4 border-l-blue-700">
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-blue-900">
-                        <DollarSign className="h-5 w-5 text-yellow-500" /> Budžet
+                        <DollarSign className="h-5 w-5 text-yellow-500" /> Budzet
                     </h2>
-                    <div className="grid grid-cols-3 gap-4">
+
+                    <div className="grid grid-cols-3 gap-4 mb-4">
                         <div className="rounded-lg bg-blue-50 p-4 text-center">
                             <p className="text-xs text-slate-500">Planirano</p>
                             <p className="mt-1 text-xl font-bold text-blue-900">{budget.plannedBudget.toFixed(2)}</p>
                         </div>
                         <div className="rounded-lg bg-red-50 p-4 text-center">
-                            <p className="text-xs text-slate-500">Potrošeno</p>
+                            <p className="text-xs text-slate-500">Potroseno</p>
                             <p className="mt-1 text-xl font-bold text-red-600">{budget.totalSpent.toFixed(2)}</p>
                         </div>
                         <div className="rounded-lg bg-green-50 p-4 text-center">
@@ -182,14 +255,44 @@ export default function TravelPlanDetailPage() {
                             <p className="mt-1 text-xl font-bold text-green-600">{budget.remainingBudget.toFixed(2)}</p>
                         </div>
                     </div>
+
+                    {/* Progress Bar */}
+                    <div className="mt-4">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium text-slate-700">Potroseno: {spentPercentage.toFixed(0)}%</span>
+                            <span className={`text-sm font-medium ${spentPercentage < 50 ? 'text-green-600' :
+                                    spentPercentage < 80 ? 'text-yellow-600' :
+                                        spentPercentage < 100 ? 'text-orange-600' :
+                                            'text-red-600'
+                                }`}>
+                                {statusText}
+                            </span>
+                        </div>
+                        <div className="mt-1 h-3 w-full overflow-hidden rounded-full bg-slate-200">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ease-in-out ${progressColor}`}
+                                style={{ width: `${spentPercentage}%` }}
+                            />
+                        </div>
+                        <div className="mt-1 flex justify-between text-xs text-slate-400">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Destinacije */}
                 <div className="mb-6 rounded-xl bg-white p-6 shadow-sm border border-blue-100 border-l-4 border-l-blue-700">
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-blue-900">
                         <MapPin className="h-5 w-5 text-yellow-500" /> Destinacije
                     </h2>
-                    <AddDestinationForm travelPlanId={plan.id} onAdded={loadOverview} />
+                    <AddDestinationForm travelPlanId={plan.id} onAdded={() => {
+                        const load = async () => {
+                            const data = await travelPlanApi.getOverview(Number(id));
+                            setOverview(data);
+                        };
+                        load();
+                    }} />
                     {destinations.length === 0 ? (
                         <p className="mt-3 text-sm text-slate-400">Nema dodanih destinacija.</p>
                     ) : (
@@ -212,14 +315,21 @@ export default function TravelPlanDetailPage() {
                                             </button>
                                             <button onClick={() => handleDeleteDestination(d.destination.id)}
                                                 className="flex items-center gap-1 text-xs text-red-600 hover:underline">
-                                                <Trash2 className="h-3 w-3" /> Obriši
+                                                <Trash2 className="h-3 w-3" /> Obrisi
                                             </button>
                                         </div>
                                     </div>
                                     {editingDestinationId === d.destination.id && (
                                         <EditDestinationForm
                                             destination={d.destination}
-                                            onSaved={() => { setEditingDestinationId(null); void loadOverview(); }}
+                                            onSaved={() => {
+                                                setEditingDestinationId(null);
+                                                const load = async () => {
+                                                    const data = await travelPlanApi.getOverview(Number(id));
+                                                    setOverview(data);
+                                                };
+                                                load();
+                                            }}
                                             onCancel={() => setEditingDestinationId(null)}
                                         />
                                     )}
@@ -241,7 +351,7 @@ export default function TravelPlanDetailPage() {
                                                             </button>
                                                             <button onClick={() => handleDeleteActivity(a.id)}
                                                                 className="flex items-center gap-1 text-xs text-red-600 hover:underline">
-                                                                <Trash2 className="h-3 w-3" /> Obriši
+                                                                <Trash2 className="h-3 w-3" /> Obrisi
                                                             </button>
                                                         </div>
                                                     </div>
@@ -251,7 +361,14 @@ export default function TravelPlanDetailPage() {
                                                     {editingActivityId === a.id && (
                                                         <EditActivityForm
                                                             activity={a}
-                                                            onSaved={() => { setEditingActivityId(null); void loadOverview(); }}
+                                                            onSaved={() => {
+                                                                setEditingActivityId(null);
+                                                                const load = async () => {
+                                                                    const data = await travelPlanApi.getOverview(Number(id));
+                                                                    setOverview(data);
+                                                                };
+                                                                load();
+                                                            }}
                                                             onCancel={() => setEditingActivityId(null)}
                                                         />
                                                     )}
@@ -259,21 +376,32 @@ export default function TravelPlanDetailPage() {
                                             ))}
                                         </ul>
                                     )}
-                                    <AddActivityForm destinationId={d.destination.id} onAdded={loadOverview} />
+                                    <AddActivityForm destinationId={d.destination.id} onAdded={() => {
+                                        const load = async () => {
+                                            const data = await travelPlanApi.getOverview(Number(id));
+                                            setOverview(data);
+                                        };
+                                        load();
+                                    }} />
                                 </div>
                             ))}
                         </div>
                     )}
                 </div>
 
-                {/* Troškovi */}
                 <div className="mb-6 rounded-xl bg-white p-6 shadow-sm border border-blue-100 border-l-4 border-l-blue-700">
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-blue-900">
-                        <DollarSign className="h-5 w-5 text-yellow-500" /> Troškovi
+                        <DollarSign className="h-5 w-5 text-yellow-500" /> Troskovi
                     </h2>
-                    <AddExpenseForm travelPlanId={plan.id} remainingBudget={budget.remainingBudget} onAdded={loadOverview} />
+                    <AddExpenseForm travelPlanId={plan.id} remainingBudget={budget.remainingBudget} onAdded={() => {
+                        const load = async () => {
+                            const data = await travelPlanApi.getOverview(Number(id));
+                            setOverview(data);
+                        };
+                        load();
+                    }} />
                     {expenses.length === 0 ? (
-                        <p className="mt-3 text-sm text-slate-400">Nema evidentiranih troškova.</p>
+                        <p className="mt-3 text-sm text-slate-400">Nema evidentiranih troskova.</p>
                     ) : (
                         <ul className="mt-3 space-y-2">
                             {expenses.map((e) => (
@@ -291,14 +419,21 @@ export default function TravelPlanDetailPage() {
                                             </button>
                                             <button onClick={() => handleDeleteExpense(e.id)}
                                                 className="flex items-center gap-1 text-xs text-red-600 hover:underline">
-                                                <Trash2 className="h-3 w-3" /> Obriši
+                                                <Trash2 className="h-3 w-3" /> Obrisi
                                             </button>
                                         </div>
                                     </div>
                                     {editingExpenseId === e.id && (
                                         <EditExpenseForm
                                             expense={e}
-                                            onSaved={() => { setEditingExpenseId(null); void loadOverview(); }}
+                                            onSaved={() => {
+                                                setEditingExpenseId(null);
+                                                const load = async () => {
+                                                    const data = await travelPlanApi.getOverview(Number(id));
+                                                    setOverview(data);
+                                                };
+                                                load();
+                                            }}
                                             onCancel={() => setEditingExpenseId(null)}
                                         />
                                     )}
@@ -308,12 +443,17 @@ export default function TravelPlanDetailPage() {
                     )}
                 </div>
 
-                {/* Checklist */}
                 <div className="mb-6 rounded-xl bg-white p-6 shadow-sm border border-blue-100 border-l-4 border-l-blue-700">
                     <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-blue-900">
                         <CheckSquare className="h-5 w-5 text-yellow-500" /> Checklist
                     </h2>
-                    <AddChecklistItemForm travelPlanId={plan.id} onAdded={loadOverview} />
+                    <AddChecklistItemForm travelPlanId={plan.id} onAdded={() => {
+                        const load = async () => {
+                            const data = await travelPlanApi.getOverview(Number(id));
+                            setOverview(data);
+                        };
+                        load();
+                    }} />
                     {checklistItems.length === 0 ? (
                         <p className="mt-3 text-sm text-slate-400">Nema stavki na checklisti.</p>
                     ) : (
@@ -333,7 +473,7 @@ export default function TravelPlanDetailPage() {
                                     </label>
                                     <button onClick={() => handleDeleteChecklistItem(c.id)}
                                         className="flex items-center gap-1 text-xs text-red-600 hover:underline">
-                                        <Trash2 className="h-3 w-3" /> Obriši
+                                        <Trash2 className="h-3 w-3" /> Obrisi
                                     </button>
                                 </li>
                             ))}
@@ -341,13 +481,11 @@ export default function TravelPlanDetailPage() {
                     )}
                 </div>
 
-                {/* Share panel */}
                 {isOwner && (
                     <div className="rounded-xl bg-white p-6 shadow-sm border border-blue-100 border-l-4 border-l-blue-700">
                         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-blue-900">
                             <Share2 className="h-5 w-5 text-yellow-500" /> Deljenje plana
                         </h2>
-
                         <SharePanel travelPlanId={plan.id} />
                     </div>
                 )}

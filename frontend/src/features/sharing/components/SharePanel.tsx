@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { QrCode, Copy, Trash2, Plus, Eye, Edit } from 'lucide-react';
+import { QrCode, Copy, Eye, Edit, Check, ExternalLink, RefreshCw } from 'lucide-react';
 import { sharingApi } from '../api/sharingApi';
 import type { ShareToken } from '../types/ShareToken';
 import QRCode from 'react-qr-code';
@@ -11,45 +11,54 @@ interface Props {
 
 export default function SharePanel({ travelPlanId }: Props) {
     const [tokens, setTokens] = useState<ShareToken[]>([]);
-    const [accessLevel, setAccessLevel] = useState('View');
-    const [isCreating, setIsCreating] = useState(false);
-    const [expandedToken, setExpandedToken] = useState<string | null>(null);
+    const [copiedToken, setCopiedToken] = useState<string | null>(null);
+    const [regenerating, setRegenerating] = useState<string | null>(null);
 
     useEffect(() => {
-        // eslint-disable-next-line
+        const loadTokens = async () => {
+            try {
+                const data = await sharingApi.getTokensForPlan(travelPlanId);
+                setTokens(data);
+            } catch {
+                toast.error('Greska prilikom ucitavanja linkova.');
+            }
+        };
+
         loadTokens();
     }, [travelPlanId]);
 
-    const loadTokens = async () => {
+    useEffect(() => {
+        const createTokensIfMissing = async () => {
+            if (tokens.length === 0) {
+                try {
+                    await sharingApi.createToken(travelPlanId, 'View');
+                    await sharingApi.createToken(travelPlanId, 'Edit');
+                    const data = await sharingApi.getTokensForPlan(travelPlanId);
+                    setTokens(data);
+                } catch {
+                    toast.error('Greska prilikom kreiranja linkova.');
+                }
+            }
+        };
+
+        createTokensIfMissing();
+    }, [tokens.length, travelPlanId]);
+
+    const handleRegenerate = async (accessLevel: string) => {
+        setRegenerating(accessLevel);
         try {
+            const existing = tokens.find(t => t.accessLevel === accessLevel);
+            if (existing) {
+                await sharingApi.revokeToken(existing.token);
+            }
+            await sharingApi.createToken(travelPlanId, accessLevel);
             const data = await sharingApi.getTokensForPlan(travelPlanId);
             setTokens(data);
+            toast.success(`Link za ${accessLevel === 'View' ? 'pregled' : 'uređivanje'} je obnovljen.`);
         } catch {
-            toast.error('Greška prilikom učitavanja linkova za dijeljenje.');
-        }
-    };
-
-    const handleCreate = async () => {
-        setIsCreating(true);
-        try {
-            await sharingApi.createToken(travelPlanId, accessLevel);
-            toast.success('Link za dijeljenje je kreiran.');
-            void loadTokens();
-        } catch {
-            toast.error('Greška prilikom kreiranja linka.');
+            toast.error('Greska prilikom obnavljanja linka.');
         } finally {
-            setIsCreating(false);
-        }
-    };
-
-    const handleRevoke = async (token: string) => {
-        if (!window.confirm('Opozvati ovaj link?')) return;
-        try {
-            await sharingApi.revokeToken(token);
-            toast.success('Link je opozvan.');
-            void loadTokens();
-        } catch {
-            toast.error('Greška prilikom opoziva linka.');
+            setRegenerating(null);
         }
     };
 
@@ -67,89 +76,130 @@ export default function SharePanel({ travelPlanId }: Props) {
             document.execCommand('copy');
             document.body.removeChild(el);
         }
-        toast.success('Link je kopiran.');
+        setCopiedToken(token);
+        toast.success('Link je kopiran!');
+        setTimeout(() => setCopiedToken(null), 3000);
+    };
+
+    const getTokenByLevel = (level: string) => tokens.find(t => t.accessLevel === level);
+
+    const renderShareCard = (level: 'View' | 'Edit') => {
+        const token = getTokenByLevel(level);
+        const isView = level === 'View';
+        const label = isView ? 'Pregled' : 'Uređivanje';
+        const icon = isView ? <Eye className="h-5 w-5" /> : <Edit className="h-5 w-5" />;
+        const bgColor = isView ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200';
+        const titleColor = isView ? 'text-blue-700' : 'text-green-700';
+        const borderColor = isView ? 'border-blue-300' : 'border-green-300';
+
+        if (!token) {
+            return (
+                <div className={`rounded-xl border-2 ${bgColor} ${borderColor} p-5`}>
+                    <div className="flex items-center justify-center gap-3">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                        <span className="text-sm text-slate-500">Kreiram link...</span>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className={`rounded-xl border-2 ${bgColor} ${borderColor} p-5 transition-all hover:shadow-md`}>
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className={`rounded-full p-2 ${isView ? 'bg-blue-100' : 'bg-green-100'}`}>
+                            {icon}
+                        </div>
+                        <div>
+                            <h3 className={`font-semibold ${titleColor}`}>
+                                Link za {label.toLowerCase()}
+                            </h3>
+                            <p className="text-xs text-slate-500">
+                                {isView ? 'Samo pregled plana' : 'Pregled i uređivanje plana'}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => handleCopy(token.token)}
+                            className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${copiedToken === token.token
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-white text-slate-700 hover:bg-slate-100'
+                                }`}
+                        >
+                            {copiedToken === token.token ? (
+                                <><Check className="h-3 w-3" /> Kopirano</>
+                            ) : (
+                                <><Copy className="h-3 w-3" /> Kopiraj</>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => handleRegenerate(level)}
+                            disabled={regenerating === level}
+                            className="flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                        >
+                            {regenerating === level ? (
+                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-slate-600 border-t-transparent" />
+                            ) : (
+                                <RefreshCw className="h-3 w-3" />
+                            )}
+                            Obnovi
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-4 flex items-center gap-6 border-t pt-4">
+                    <div className="flex-shrink-0 cursor-pointer" onClick={() => handleCopy(token.token)}>
+                        <div className="rounded-xl bg-white p-3 shadow-sm transition hover:shadow-md">
+                            <QRCode value={buildShareUrl(token.token)} size={120} />
+                        </div>
+                        <p className="mt-1 text-center text-[10px] text-slate-400">Klikni na QR za kopiranje</p>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={buildShareUrl(token.token)}
+                                readOnly
+                                className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600 outline-none truncate cursor-pointer"
+                                onClick={(e) => {
+                                    (e.target as HTMLInputElement).select();
+                                    handleCopy(token.token);
+                                }}
+                            />
+                            <a
+                                href={buildShareUrl(token.token)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 rounded-lg bg-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-300 transition-colors"
+                            >
+                                <ExternalLink className="h-3 w-3" />
+                                Otvori
+                            </a>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-400">
+                            Skenirajte QR kod ili kopirajte link za deljenje
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     return (
         <div className="rounded-xl border-l-4 border-blue-700 bg-white p-6 shadow-sm">
             <h2 className="mb-1 flex items-center gap-2 text-lg font-semibold text-blue-900">
                 <QrCode className="h-5 w-5 text-yellow-500" />
-                Dijeljenje plana
+                Deljenje plana
             </h2>
-            <p className="mb-4 text-xs text-slate-400">Kreirajte link ili QR kod za dijeljenje ovog plana sa drugima.</p>
+            <p className="mb-4 text-xs text-slate-400">
+                Linkovi se automatski kreiraju. Dijelite ih sa drugima za pregled ili uređivanje plana.
+            </p>
 
-            <div className="mb-6 flex items-center gap-2">
-                <select
-                    value={accessLevel}
-                    onChange={(e) => setAccessLevel(e.target.value)}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                >
-                    <option value="View">👁️ Samo pregled</option>
-                    <option value="Edit">✏️ Pregled i uređivanje</option>
-                </select>
-                <button
-                    onClick={handleCreate}
-                    disabled={isCreating}
-                    className="flex items-center gap-1 rounded-lg bg-yellow-400 px-3 py-2 text-sm font-medium text-blue-900 hover:bg-yellow-300 disabled:opacity-50"
-                >
-                    <Plus className="h-4 w-4" />
-                    Kreiraj link
-                </button>
+            <div className="space-y-4">
+                {renderShareCard('View')}
+                {renderShareCard('Edit')}
             </div>
-
-            {tokens.length === 0 ? (
-                <p className="text-sm text-slate-400">Nemate aktivnih linkova za dijeljenje.</p>
-            ) : (
-                <div className="space-y-3">
-                    {tokens.map((t) => (
-                        <div key={t.token} className="overflow-hidden rounded-lg border border-slate-200">
-                            <div
-                                className="flex cursor-pointer items-center justify-between bg-slate-50 p-3 hover:bg-slate-100"
-                                onClick={() => setExpandedToken(expandedToken === t.token ? null : t.token)}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${t.accessLevel === 'Edit'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-blue-100 text-blue-700'
-                                        }`}>
-                                        {t.accessLevel === 'Edit'
-                                            ? <><Edit className="h-3 w-3" /> Uređivanje</>
-                                            : <><Eye className="h-3 w-3" /> Pregled</>
-                                        }
-                                    </span>
-                                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                                        <QrCode className="h-3 w-3" />
-                                        Klikni za QR kod
-                                    </span>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleCopy(t.token); }}
-                                        className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
-                                    >
-                                        <Copy className="h-3 w-3" /> Kopiraj link
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleRevoke(t.token); }}
-                                        className="flex items-center gap-1 text-xs text-red-600 hover:underline"
-                                    >
-                                        <Trash2 className="h-3 w-3" /> Opozovi
-                                    </button>
-                                </div>
-                            </div>
-                            {expandedToken === t.token && (
-                                <div className="flex flex-col items-center gap-3 border-t border-slate-100 bg-white p-6">
-                                    <QRCode value={buildShareUrl(t.token)} size={180} />
-                                    <p className="text-xs text-slate-400">Skenirajte QR kod ili kopirajte link iznad</p>
-                                    <p className="max-w-xs break-all text-center text-xs text-slate-500">
-                                        {buildShareUrl(t.token)}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 }
