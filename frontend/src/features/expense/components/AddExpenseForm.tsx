@@ -8,7 +8,7 @@ interface Props {
     onAdded: () => void;
 }
 
-const CATEGORIES = ['Prevoz', 'Smještaj', 'Hrana', 'Ulaznice', 'Kupovina', 'Ostalo'];
+const CATEGORIES = ['Prevoz', 'Smeštaj', 'Hrana', 'Ulaznice', 'Kupovina', 'Ostalo'];
 
 export default function AddExpenseForm({ travelPlanId, remainingBudget, onAdded }: Props) {
     const [name, setName] = useState('');

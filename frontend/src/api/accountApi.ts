@@ -20,7 +20,7 @@ accountApi.interceptors.response.use(
         if (error.response?.status === 401) {
             sessionStorage.removeItem('pf_token');
             sessionStorage.removeItem('pf_user');
-            window.location.href = '/prijava';
+            window.location.href = `/prijava?returnTo=${encodeURIComponent(window.location.pathname)}`;
         }
         return Promise.reject(error);
     }
