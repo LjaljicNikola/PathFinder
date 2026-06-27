@@ -42,7 +42,7 @@ export default function LoginPage() {
                 <Plane className="mb-6 h-20 w-20 text-yellow-400" />
                 <h1 className="mb-4 text-4xl font-bold text-white">PathFinder</h1>
                 <p className="text-center text-lg text-blue-200">
-                    Planirajte putovanja na jednom mjestu. Destinacije, aktivnosti, budžet i još mnogo toga.
+                    Planirajte putovanja na jednom mestu. Destinacije, aktivnosti, budžet i još mnogo toga.
                 </p>
             </div>
 

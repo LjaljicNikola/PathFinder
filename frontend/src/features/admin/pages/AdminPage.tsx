@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Users, Shield, Mail, Calendar, Trash2, UserCog, User, Crown } from 'lucide-react';
-import accountApi from '../../../api/accountApi';
+import { adminApi } from '../api/adminApi';
 import { useAuth } from '../../../context/useAuth';
 
 interface User {
@@ -19,26 +19,24 @@ export default function AdminPage() {
     const [isLoading, setIsLoading] = useState(true);
     const { currentUser } = useAuth();
 
-    const loadUsers = async () => {
-        try {
-            const response = await accountApi.get<User[]>('/admin/users');
-            setUsers(response.data);
-        } catch {
-            toast.error('Greška prilikom učitavanja korisnika.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     useEffect(() => {
-        // eslint-disable-next-line
-        loadUsers();
+        const load = async () => {
+            try {
+                const data = await adminApi.getUsers();
+                setUsers(data);
+            } catch {
+                toast.error('Greška prilikom učitavanja korisnika.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        load();
     }, []);
 
     const handleDelete = async (id: number) => {
         if (!window.confirm('Obrisati korisnika?')) return;
         try {
-            await accountApi.delete(`/admin/users/${id}`);
+            await adminApi.deleteUser(id);
             toast.success('Korisnik je obrisan.');
             setUsers((prev) => prev.filter((u) => u.id !== id));
         } catch {
@@ -53,7 +51,7 @@ export default function AdminPage() {
         }
         const newRole = currentRole === 'Admin' ? 'Korisnik' : 'Admin';
         try {
-            await accountApi.put(`/admin/users/${id}/role`, { role: newRole });
+            await adminApi.changeRole(id, newRole);
             toast.success('Uloga je promijenjena.');
             setUsers((prev) => prev.map((u) => u.id === id ? { ...u, role: newRole } : u));
         } catch {
@@ -61,16 +59,8 @@ export default function AdminPage() {
         }
     };
 
-    // Helper funkcije za plural
-    const getUsersCountText = (count: number) => {
-        if (count === 1) return '1 korisnik';
-        return `${count} korisnika`;
-    };
-
-    const getAdminsCountText = (count: number) => {
-        if (count === 1) return '1 admin';
-        return `${count} admina`;
-    };
+    const getUsersCountText = (count: number) => count === 1 ? '1 korisnik' : `${count} korisnika`;
+    const getAdminsCountText = (count: number) => count === 1 ? '1 admin' : `${count} admina`;
 
     if (isLoading) {
         return (
@@ -88,7 +78,6 @@ export default function AdminPage() {
     return (
         <div className="min-h-screen bg-slate-50">
             <div className="mx-auto max-w-6xl px-8 py-10">
-                {/* Back button */}
                 <button
                     onClick={() => navigate('/')}
                     className="mb-6 inline-flex items-center gap-1 text-sm text-blue-700 hover:underline"
@@ -96,7 +85,6 @@ export default function AdminPage() {
                     <ArrowLeft className="h-4 w-4" /> Nazad na početnu
                 </button>
 
-                {/* Header */}
                 <div className="mb-6 rounded-xl border-l-4 border-blue-700 bg-white p-6 shadow-sm">
                     <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
                         <div>
@@ -108,11 +96,9 @@ export default function AdminPage() {
                                 Pregled i upravljanje svim korisnicima sistema
                             </p>
                         </div>
-                        
                     </div>
                 </div>
 
-                {/* Table */}
                 <div className="overflow-hidden rounded-xl border-l-4 border-blue-700 bg-white shadow-sm">
                     {users.length === 0 ? (
                         <div className="p-8 text-center">
@@ -125,32 +111,18 @@ export default function AdminPage() {
                                 <thead className="border-b border-slate-200 bg-slate-50">
                                     <tr>
                                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                                            <div className="flex items-center gap-1">
-                                                <User className="h-3 w-3" />
-                                                Ime
-                                            </div>
+                                            <div className="flex items-center gap-1"><User className="h-3 w-3" />Ime</div>
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                                            <div className="flex items-center gap-1">
-                                                <Mail className="h-3 w-3" />
-                                                Email
-                                            </div>
+                                            <div className="flex items-center gap-1"><Mail className="h-3 w-3" />Email</div>
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                                            <div className="flex items-center gap-1">
-                                                <Shield className="h-3 w-3" />
-                                                Uloga
-                                            </div>
+                                            <div className="flex items-center gap-1"><Shield className="h-3 w-3" />Uloga</div>
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                                            <div className="flex items-center gap-1">
-                                                <Calendar className="h-3 w-3" />
-                                                Registrovan
-                                            </div>
+                                            <div className="flex items-center gap-1"><Calendar className="h-3 w-3" />Registrovan</div>
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
-                                            Akcije
-                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-slate-500">Akcije</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -166,24 +138,13 @@ export default function AdminPage() {
                                             </td>
                                             <td className="px-4 py-3 text-slate-500">{u.email}</td>
                                             <td className="px-4 py-3">
-                                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${u.role === 'Admin'
-                                                        ? 'bg-indigo-100 text-indigo-700'
-                                                        : 'bg-slate-100 text-slate-600'
-                                                    }`}>
-                                                    {u.role === 'Admin' ? (
-                                                        <Crown className="h-3 w-3" />
-                                                    ) : (
-                                                        <User className="h-3 w-3" />
-                                                    )}
+                                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${u.role === 'Admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                                                    {u.role === 'Admin' ? <Crown className="h-3 w-3" /> : <User className="h-3 w-3" />}
                                                     {u.role}
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-xs text-slate-500">
-                                                {new Date(u.registeredOn).toLocaleDateString('sr-Latn', {
-                                                    day: '2-digit',
-                                                    month: '2-digit',
-                                                    year: 'numeric'
-                                                })}
+                                                {new Date(u.registeredOn).toLocaleDateString('sr-Latn', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-wrap items-center gap-2">
@@ -211,14 +172,13 @@ export default function AdminPage() {
                     )}
                 </div>
 
-                {/* Footer stats */}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-4 text-xs text-slate-500">
                         <span>👥 {getUsersCountText(users.length)}</span>
                         <span>👑 {getAdminsCountText(adminCount)}</span>
                         <span>📅 Zadnje ažuriranje: {new Date().toLocaleDateString('sr-Latn')}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-slate-400">
+                    <div className="flex items-center gap-1 text-xs text-slate.400">
                         <Shield className="h-3 w-3" />
                         Admin panel
                     </div>
