@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Users, Shield, Mail, Calendar, Trash2, UserCog, User, Crown } from 'lucide-react';
 import accountApi from '../../../api/accountApi';
+import { useAuth } from '../../../context/useAuth';
 
 interface User {
     id: number;
@@ -16,6 +17,7 @@ export default function AdminPage() {
     const navigate = useNavigate();
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { currentUser } = useAuth();
 
     const loadUsers = async () => {
         try {
@@ -45,6 +47,10 @@ export default function AdminPage() {
     };
 
     const handleChangeRole = async (id: number, currentRole: string) => {
+        if (id === currentUser?.id && currentRole === 'Admin') {
+            toast.warning('Ne možete ukloniti Admin ulogu sa sopstvenog naloga.');
+            return;
+        }
         const newRole = currentRole === 'Admin' ? 'Korisnik' : 'Admin';
         try {
             await accountApi.put(`/admin/users/${id}/role`, { role: newRole });
@@ -102,16 +108,7 @@ export default function AdminPage() {
                                 Pregled i upravljanje svim korisnicima sistema
                             </p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs text-slate-500">
-                                Ukupno: {getUsersCountText(users.length)}
-                            </span>
-                            <span className="h-6 w-px bg-slate-200"></span>
-                            <div className="flex items-center gap-1 text-xs text-slate-500">
-                                <Shield className="h-3 w-3" />
-                                {getAdminsCountText(adminCount)}
-                            </div>
-                        </div>
+                        
                     </div>
                 </div>
 
@@ -159,7 +156,14 @@ export default function AdminPage() {
                                 <tbody className="divide-y divide-slate-100">
                                     {users.map((u) => (
                                         <tr key={u.id} className="transition-colors hover:bg-slate-50">
-                                            <td className="px-4 py-3 font-medium text-slate-800">{u.fullName}</td>
+                                            <td className="px-4 py-3 font-medium text-slate-800">
+                                                <button
+                                                    onClick={() => navigate(`/admin/korisnici/${u.id}/${encodeURIComponent(u.fullName)}/planovi`)}
+                                                    className="text-blue-700 hover:underline"
+                                                >
+                                                    {u.fullName}
+                                                </button>
+                                            </td>
                                             <td className="px-4 py-3 text-slate-500">{u.email}</td>
                                             <td className="px-4 py-3">
                                                 <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${u.role === 'Admin'
@@ -188,7 +192,7 @@ export default function AdminPage() {
                                                         className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
                                                     >
                                                         <UserCog className="h-3 w-3" />
-                                                        {u.role === 'Admin' ? 'Ukloni Admin' : 'Postavi Admin'}
+                                                        {u.role === 'Admin' ? 'Ukloni Admina' : 'Postavi za Admina'}
                                                     </button>
                                                     <button
                                                         onClick={() => handleDelete(u.id)}

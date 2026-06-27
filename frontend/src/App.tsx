@@ -12,6 +12,7 @@ import SharedPlanViewPage from './features/sharing/pages/SharedPlanViewPage';
 import Navbar from './components/Navbar';
 import AdminPage from './features/admin/pages/AdminPage';
 import CalendarPage from './features/activity/pages/CalendarPage';
+import AdminUserPlansPage from './features/admin/pages/AdminUserPlansPage';
 
 function App() {
     return (
@@ -74,6 +75,14 @@ function App() {
                         element={
                             <ProtectedRoute>
                                 <CalendarPage />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/korisnici/:userId/:fullName/planovi"
+                        element={
+                            <ProtectedRoute>
+                                <AdminUserPlansPage />
                             </ProtectedRoute>
                         }
                     />

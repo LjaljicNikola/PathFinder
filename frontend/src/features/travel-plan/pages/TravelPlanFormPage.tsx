@@ -1,14 +1,16 @@
 ﻿import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { MapPin, Calendar, DollarSign, FileText, ArrowLeft, Save, AlertCircle } from 'lucide-react';
 import { travelPlanApi } from '../api/travelPlanApi';
 import { useAuth } from '../../../context/useAuth';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 
 export default function TravelPlanFormPage() {
     const { id } = useParams();
     const isEditMode = !!id;
     const navigate = useNavigate();
+    const location = useLocation();
+    const returnTo = (location.state as { returnTo?: string })?.returnTo ?? '/';
     const { currentUser } = useAuth();
 
     const [title, setTitle] = useState('');
@@ -124,7 +126,7 @@ export default function TravelPlanFormPage() {
                     plannedBudget: Number(plannedBudget),
                     notes,
                 });
-                toast.success('Plan je izmijenjen.');
+                toast.success('Plan je izmenjen.');
             } else {
                 await travelPlanApi.create({
                     userId: currentUser!.id,
@@ -137,7 +139,7 @@ export default function TravelPlanFormPage() {
                 });
                 toast.success('Plan je kreiran.');
             }
-            navigate('/');
+            navigate(returnTo);
         } catch {
             toast.error('Greska prilikom cuvanja plana.');
         } finally {
@@ -175,7 +177,7 @@ export default function TravelPlanFormPage() {
             <div className="mx-auto max-w-4xl px-8 py-10">
                 {/* Back button */}
                 <button
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate(returnTo)}
                     className="mb-6 inline-flex items-center gap-1 text-sm text-blue-700 hover:underline"
                 >
                     <ArrowLeft className="h-4 w-4" /> Nazad na listu
@@ -342,7 +344,7 @@ export default function TravelPlanFormPage() {
                             ) : (
                                 <>
                                     <Save className="h-5 w-5" />
-                                    {isEditMode ? 'Sacuvaj izmjene' : 'Kreiraj plan'}
+                                    {isEditMode ? 'Sacuvaj izmene' : 'Kreiraj plan'}
                                 </>
                             )}
                         </button>

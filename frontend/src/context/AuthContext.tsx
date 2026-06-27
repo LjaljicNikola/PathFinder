@@ -4,6 +4,7 @@ import { AuthContext } from './authContextDefinition';
 
 function loadStoredUser(): AuthUser | null {
     const savedUser = sessionStorage.getItem('pf_user');
+
     if (!savedUser) return null;
 
     try {
